@@ -20,11 +20,11 @@ class Product(Base):
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False)
     specs: Mapped[dict] = mapped_column(JSON, default=dict)  # e.g. {"ram": "8GB", "storage": "128GB"}
     photo_urls: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    created_at: Mapped[time] = mapped_column(DateTime(timezone=True), server_default=func.now)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @property
     def display_price(self) -> float:
-        return self.discount_price if self.discount_price is not None else self.price
+        return self.discount_price if self.discount_price else self.price
 
     @property
     def in_stock(self) -> bool:
