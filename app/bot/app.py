@@ -29,6 +29,7 @@ from app.bot.handlers_owner import (
     add_product_stock,
     add_product_start,
 )
+from app.bot.handlers_owner_manage import my_products, update_price, update_stock
 from app.core.config import settings
 
 
@@ -38,7 +39,9 @@ def build_application() -> Application:
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(browse_category, pattern=r"^category:"))
     application.add_handler(CallbackQueryHandler(product_detail, pattern=r"^product:"))
-
+     application.add_handler(CommandHandler("myproducts", my_products))
+    application.add_handler(CommandHandler("setstock", update_stock))
+    application.add_handler(CommandHandler("setprice", update_price))
     add_product_conv = ConversationHandler(
         entry_points=[CommandHandler("addproduct", add_product_start)],
         states={
