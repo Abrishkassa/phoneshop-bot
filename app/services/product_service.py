@@ -24,10 +24,24 @@ async def get_product(db: AsyncSession, product_id: int) -> Product | None:
     return result.scalar_one_or_none()
 
 
+async def list_all_products(db: AsyncSession) -> list[Product]:
+    result = await db.execute(select(Product).order_by(Product.category, Product.id))
+    return list(result.scalars().all())
+
+
 async def set_stock(db: AsyncSession, product_id: int, stock_qty: int) -> Product | None:
     product = await get_product(db, product_id)
     if product:
         product.stock_qty = stock_qty
+        await db.commit()
+        await db.refresh(product)
+    return product
+
+
+async def set_price(db: AsyncSession, product_id: int, price: float) -> Product | None:
+    product = await get_product(db, product_id)
+    if product:
+        product.price = price
         await db.commit()
         await db.refresh(product)
     return product
