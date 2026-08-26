@@ -34,7 +34,7 @@ async def product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{specs_lines}\n\n"
         f"{'✅ In Stock' if product.in_stock else '❌ Out of Stock'}"
     )
-        keyboard = [
+    keyboard = [
         [InlineKeyboardButton("✅ Request Delivery", callback_data=f"deliver:{product.id}")],
         [InlineKeyboardButton("📞 Call Shop Now", url=f"tel:{settings.shop_phone}")],
         [InlineKeyboardButton("🔍 Compare with another", callback_data=f"compare:{product.id}")],
