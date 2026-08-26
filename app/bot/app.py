@@ -7,7 +7,8 @@ from telegram.ext import (
     filters,
 )
 
-from app.bot.handlers_customer import browse_category, start
+from app.bot.handlers_compare import compare_start
+from app.bot.handlers_customer import browse_category, filter_products, start
 from app.bot.handlers_delivery import (
     AWAITING_COLOR,
     product_detail,
@@ -36,12 +37,15 @@ from app.core.config import settings
 def build_application() -> Application:
     application = Application.builder().token(settings.telegram_bot_token).build()
 
-    application.add_handler(CommandHandler("start", start))
+        application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(browse_category, pattern=r"^category:"))
+    application.add_handler(CallbackQueryHandler(filter_products, pattern=r"^filter:"))
     application.add_handler(CallbackQueryHandler(product_detail, pattern=r"^product:"))
-     application.add_handler(CommandHandler("myproducts", my_products))
+    application.add_handler(CallbackQueryHandler(compare_start, pattern=r"^compare:"))
+    application.add_handler(CommandHandler("myproducts", my_products))
     application.add_handler(CommandHandler("setstock", update_stock))
     application.add_handler(CommandHandler("setprice", update_price))
+
     add_product_conv = ConversationHandler(
         entry_points=[CommandHandler("addproduct", add_product_start)],
         states={

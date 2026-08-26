@@ -19,6 +19,28 @@ async def list_products_by_category(db: AsyncSession, category: str) -> list[Pro
     return list(result.scalars().all())
 
 
+PRICE_RANGES = {
+    "under10k": (None, 10000),
+    "10to20k": (10000, 20000),
+    "over20k": (20000, None),
+    "all": (None, None),
+}
+
+
+async def list_products_by_category_and_price(
+    db: AsyncSession, category: str, price_range_key: str
+) -> list[Product]:
+    low, high = PRICE_RANGES.get(price_range_key, (None, None))
+    stmt = select(Product).where(Product.category == category)
+    if low is not None:
+        stmt = stmt.where(Product.price >= low)
+    if high is not None:
+        stmt = stmt.where(Product.price < high)
+    stmt = stmt.order_by(Product.is_featured.desc(), Product.id.desc())
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
 async def get_product(db: AsyncSession, product_id: int) -> Product | None:
     result = await db.execute(select(Product).where(Product.id == product_id))
     return result.scalar_one_or_none()
