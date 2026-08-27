@@ -1,21 +1,6 @@
-from telegram.ext import (
-    Application,
-    CallbackQueryHandler,
-    CommandHandler,
-    ConversationHandler,
-    MessageHandler,
-    filters,
-)
+from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
 
-from app.bot.handlers_compare import compare_start
-from app.bot.handlers_customer import browse_category, filter_products, start
-from app.bot.handlers_delivery import (
-    AWAITING_COLOR,
-    product_detail,
-    request_delivery_cancel,
-    request_delivery_color,
-    request_delivery_start,
-)
+from app.bot.handlers_customer import start
 from app.bot.handlers_owner import (
     CATEGORY,
     COLORS,
@@ -35,13 +20,16 @@ from app.core.config import settings
 
 
 def build_application() -> Application:
+    """Builds the bot's command set.
+
+    Product browsing, filtering, comparing, and delivery requests now live in
+    the Telegram Mini App (static/index.html + /api/* endpoints) rather than
+    in chat handlers — see app/bot/handlers_customer.py and app/routers/miniapp.py.
+    Only owner management stays as bot commands.
+    """
     application = Application.builder().token(settings.telegram_bot_token).build()
 
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(CallbackQueryHandler(browse_category, pattern=r"^category:"))
-    application.add_handler(CallbackQueryHandler(filter_products, pattern=r"^filter:"))
-    application.add_handler(CallbackQueryHandler(product_detail, pattern=r"^product:"))
-    application.add_handler(CallbackQueryHandler(compare_start, pattern=r"^compare:"))
 
     application.add_handler(CommandHandler("myproducts", my_products))
     application.add_handler(CommandHandler("setstock", update_stock))
@@ -59,14 +47,5 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("cancel", add_product_cancel)],
     )
     application.add_handler(add_product_conv)
-
-    delivery_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(request_delivery_start, pattern=r"^deliver:")],
-        states={
-            AWAITING_COLOR: [MessageHandler(filters.TEXT & ~filters.COMMAND, request_delivery_color)],
-        },
-        fallbacks=[CommandHandler("cancel", request_delivery_cancel)],
-    )
-    application.add_handler(delivery_conv)
 
     return application

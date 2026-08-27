@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     shop_name: str = "Phone Shop"
     shop_phone: str = ""
     shop_location: str = ""
+    miniapp_url: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
