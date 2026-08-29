@@ -67,3 +67,13 @@ async def set_price(db: AsyncSession, product_id: int, price: float) -> Product 
         await db.commit()
         await db.refresh(product)
     return product
+
+
+async def add_photo_url(db: AsyncSession, product_id: int, photo_url: str) -> Product | None:
+    product = await get_product(db, product_id)
+    if product:
+        # Reassign (not .append) so SQLAlchemy detects the ARRAY column changed.
+        product.photo_urls = [*(product.photo_urls or []), photo_url]
+        await db.commit()
+        await db.refresh(product)
+    return product

@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     shop_phone: str = ""
     shop_location: str = ""
     miniapp_url: str = ""
+    supabase_url: str = ""
+    supabase_service_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

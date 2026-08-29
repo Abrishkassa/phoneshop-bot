@@ -1,9 +1,12 @@
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 
 from app.bot.access import owner_only
 from app.core.database import AsyncSessionLocal
-from app.services.product_service import list_all_products, set_price, set_stock
+from app.core.storage import upload_product_photo
+from app.services.product_service import add_photo_url, get_product, list_all_products, set_price, set_stock
+
+AWAITING_PHOTO_FOR_PRODUCT = 1
 
 
 @owner_only
@@ -20,7 +23,7 @@ async def my_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
         stock_note = f"{p.stock_qty} in stock" if p.stock_qty > 0 else "OUT OF STOCK"
         lines.append(f"#{p.id} — {p.name} ({p.category}) — {p.price} ETB — {stock_note}")
 
-    lines.append("\nUpdate with:\n/setstock <id> <qty>\n/setprice <id> <price>")
+    lines.append("\nUpdate with:\n/setstock <id> <qty>\n/setprice <id> <price>\n/addphoto <id>")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
@@ -45,7 +48,7 @@ async def update_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"No product found with id #{product_id}.")
         return
 
-    await update.message.reply_text(f"✅ {product.name} stock updated to {qty}.")
+    await update.message.reply_text(f" {product.name} stock updated to {qty}.")
 
 
 @owner_only
@@ -69,4 +72,58 @@ async def update_price(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"No product found with id #{product_id}.")
         return
 
-    await update.message.reply_text(f"✅ {product.name} price updated to {price} ETB.")
+    await update.message.reply_text(f" {product.name} price updated to {price} ETB.")
+
+
+@owner_only
+async def add_photo_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    args = context.args
+    if len(args) != 1:
+        await update.message.reply_text("Usage: /addphoto <product_id>\nExample: /addphoto 3")
+        return ConversationHandler.END
+
+    try:
+        product_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("product_id must be a whole number.")
+        return ConversationHandler.END
+
+    async with AsyncSessionLocal() as db:
+        product = await get_product(db, product_id)
+
+    if not product:
+        await update.message.reply_text(f"No product found with id #{product_id}.")
+        return ConversationHandler.END
+
+    context.user_data["photo_target_product_id"] = product_id
+    await update.message.reply_text(f"Send a photo for *{product.name}*.", parse_mode="Markdown")
+    return AWAITING_PHOTO_FOR_PRODUCT
+
+
+async def add_photo_receive(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    product_id = context.user_data.pop("photo_target_product_id", None)
+    if not product_id or not update.message.photo:
+        await update.message.reply_text("Please send a photo, or /cancel to stop.")
+        return AWAITING_PHOTO_FOR_PRODUCT
+
+    largest = update.message.photo[-1]
+    file = await context.bot.get_file(largest.file_id)
+    file_bytes = bytes(await file.download_as_bytearray())
+
+    try:
+        photo_url = await upload_product_photo(file_bytes)
+    except Exception:
+        await update.message.reply_text(" Upload failed. Please try again with /addphoto.")
+        return ConversationHandler.END
+
+    async with AsyncSessionLocal() as db:
+        product = await add_photo_url(db, product_id, photo_url)
+
+    await update.message.reply_text(f" Photo added to {product.name if product else 'product'}.")
+    return ConversationHandler.END
+
+
+async def add_photo_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data.pop("photo_target_product_id", None)
+    await update.message.reply_text("Cancelled.")
+    return ConversationHandler.END

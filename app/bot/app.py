@@ -5,27 +5,37 @@ from app.bot.handlers_owner import (
     CATEGORY,
     COLORS,
     NAME,
+    PHOTO,
     PRICE,
     STOCK,
     add_product_cancel,
     add_product_category,
     add_product_colors,
     add_product_name,
+    add_product_photo,
     add_product_price,
-    add_product_stock,
     add_product_start,
+    add_product_stock,
 )
-from app.bot.handlers_owner_manage import my_products, update_price, update_stock
+from app.bot.handlers_owner_manage import (
+    AWAITING_PHOTO_FOR_PRODUCT,
+    add_photo_cancel,
+    add_photo_receive,
+    add_photo_start,
+    my_products,
+    update_price,
+    update_stock,
+)
 from app.core.config import settings
 
 
 def build_application() -> Application:
     """Builds the bot's command set.
 
-    Product browsing, filtering, comparing, and delivery requests now live in
-    the Telegram Mini App (static/index.html + /api/* endpoints) rather than
-    in chat handlers — see app/bot/handlers_customer.py and app/routers/miniapp.py.
-    Only owner management stays as bot commands.
+    Product browsing, filtering, comparing, and delivery requests live in the
+    Telegram Mini App (static/index.html + /api/* endpoints) — see
+    app/bot/handlers_customer.py and app/routers/miniapp.py. Only owner
+    management stays as bot commands.
     """
     application = Application.builder().token(settings.telegram_bot_token).build()
 
@@ -43,9 +53,19 @@ def build_application() -> Application:
             PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_price)],
             COLORS: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_colors)],
             STOCK: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_stock)],
+            PHOTO: [MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), add_product_photo)],
         },
         fallbacks=[CommandHandler("cancel", add_product_cancel)],
     )
     application.add_handler(add_product_conv)
+
+    add_photo_conv = ConversationHandler(
+        entry_points=[CommandHandler("addphoto", add_photo_start)],
+        states={
+            AWAITING_PHOTO_FOR_PRODUCT: [MessageHandler(filters.PHOTO, add_photo_receive)],
+        },
+        fallbacks=[CommandHandler("cancel", add_photo_cancel)],
+    )
+    application.add_handler(add_photo_conv)
 
     return application
