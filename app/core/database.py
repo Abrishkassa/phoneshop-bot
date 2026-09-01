@@ -8,10 +8,16 @@ engine = create_async_engine(
     settings.database_url,
     echo=False,
     future=True,
-    # Supabase's transaction pooler (PgBouncer) does not support prepared
-    # statement caching — disabling it here avoids "prepared statement
-    # already exists" errors under the pooler.
-    connect_args={"statement_cache_size": 0, "ssl": "require"},
+    # Two SEPARATE caches need disabling for Supabase's PgBouncer transaction
+    # pooler: asyncpg's own cache (statement_cache_size) AND SQLAlchemy's
+    # own internal prepared-statement cache (prepared_statement_cache_size).
+    # Missing the second one is what causes the deterministic
+    # "__asyncpg_stmt_1__" name to collide across pooled connections.
+    connect_args={
+        "statement_cache_size": 0,
+        "prepared_statement_cache_size": 0,
+        "ssl": "require",
+    },
     # NullPool: don't let SQLAlchemy hold and reuse its own raw connections.
     # Supabase's PgBouncer already pools connections underneath — layering
     # SQLAlchemy's pool on top of that is what causes the
