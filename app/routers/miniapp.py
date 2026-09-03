@@ -7,7 +7,7 @@ from app.schemas.miniapp import InquiryCreate, InquiryOut, ProductOut
 from app.services.inquiry_service import create_inquiry
 from app.services.product_service import (
     get_product,
-    list_products_by_category,
+    list_distinct_brands,
     list_products_by_category_and_price,
 )
 
@@ -17,14 +17,17 @@ router = APIRouter(prefix="/api", tags=["miniapp"])
 @router.get("/products", response_model=list[ProductOut])
 async def get_products(
     category: str,
-    price_range: str | None = None,
+    price_range: str = "all",
+    brand: str | None = None,
+    search: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
-    if price_range:
-        products = await list_products_by_category_and_price(db, category, price_range)
-    else:
-        products = await list_products_by_category(db, category)
-    return products
+    return await list_products_by_category_and_price(db, category, price_range, brand=brand, search=search)
+
+
+@router.get("/brands", response_model=list[str])
+async def get_brands(category: str, db: AsyncSession = Depends(get_db)):
+    return await list_distinct_brands(db, category)
 
 
 @router.get("/products/{product_id}", response_model=ProductOut)
@@ -52,7 +55,7 @@ async def submit_inquiry(payload: InquiryCreate, db: AsyncSession = Depends(get_
 
     username_note = f"@{payload.telegram_username}" if payload.telegram_username else f"id {payload.telegram_id}"
     await notify_owner(
-        f"🔔 New delivery request (Mini App)\n"
+        f" New delivery request (Mini App)\n"
         f"Product: {product.name}\n"
         f"Customer: {username_note}\n"
         f"Color: {payload.preferred_color or 'any'}\n"
