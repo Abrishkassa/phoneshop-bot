@@ -2,26 +2,44 @@ from telegram.ext import Application, CommandHandler, ConversationHandler, Messa
 
 from app.bot.handlers_customer import start
 from app.bot.handlers_owner import (
+    BRAND,
     CATEGORY,
     COLORS,
     NAME,
     PHOTO,
     PRICE,
+    SPEC_BATTERY,
+    SPEC_EARPHONE_BATTERY,
+    SPEC_EARPHONE_TYPE,
+    SPEC_PROCESSOR,
+    SPEC_RAM,
+    SPEC_STORAGE,
     STOCK,
+    add_product_brand,
     add_product_cancel,
     add_product_category,
     add_product_colors,
     add_product_name,
     add_product_photo,
     add_product_price,
+    add_product_spec_battery,
+    add_product_spec_earphone_battery,
+    add_product_spec_earphone_type,
+    add_product_spec_processor,
+    add_product_spec_ram,
+    add_product_spec_storage,
     add_product_start,
     add_product_stock,
 )
 from app.bot.handlers_owner_manage import (
     AWAITING_PHOTO_FOR_PRODUCT,
+    AWAITING_SPECS_TEXT,
     add_photo_cancel,
     add_photo_receive,
     add_photo_start,
+    edit_specs_cancel,
+    edit_specs_receive,
+    edit_specs_start,
     my_products,
     update_price,
     update_stock,
@@ -50,9 +68,20 @@ def build_application() -> Application:
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_name)],
             CATEGORY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_category)],
+            BRAND: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_brand)],
             PRICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_price)],
             COLORS: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_colors)],
             STOCK: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_stock)],
+            SPEC_RAM: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_ram)],
+            SPEC_STORAGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_storage)],
+            SPEC_PROCESSOR: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_processor)],
+            SPEC_BATTERY: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_battery)],
+            SPEC_EARPHONE_BATTERY: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_earphone_battery)
+            ],
+            SPEC_EARPHONE_TYPE: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_earphone_type)
+            ],
             PHOTO: [MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), add_product_photo)],
         },
         fallbacks=[CommandHandler("cancel", add_product_cancel)],
@@ -67,5 +96,14 @@ def build_application() -> Application:
         fallbacks=[CommandHandler("cancel", add_photo_cancel)],
     )
     application.add_handler(add_photo_conv)
+
+    edit_specs_conv = ConversationHandler(
+        entry_points=[CommandHandler("editspecs", edit_specs_start)],
+        states={
+            AWAITING_SPECS_TEXT: [MessageHandler(filters.TEXT & ~filters.COMMAND, edit_specs_receive)],
+        },
+        fallbacks=[CommandHandler("cancel", edit_specs_cancel)],
+    )
+    application.add_handler(edit_specs_conv)
 
     return application

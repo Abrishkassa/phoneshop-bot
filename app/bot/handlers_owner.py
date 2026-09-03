@@ -6,11 +6,28 @@ from app.core.database import AsyncSessionLocal
 from app.core.storage import upload_product_photo
 from app.services.product_service import create_product
 
-NAME, CATEGORY, PRICE, COLORS, STOCK, PHOTO = range(6)
+(
+    NAME,
+    CATEGORY,
+    BRAND,
+    PRICE,
+    COLORS,
+    STOCK,
+    SPEC_RAM,
+    SPEC_STORAGE,
+    SPEC_PROCESSOR,
+    SPEC_BATTERY,
+    SPEC_EARPHONE_BATTERY,
+    SPEC_EARPHONE_TYPE,
+    PHOTO,
+) = range(13)
 
 CATEGORY_KEYBOARD = ReplyKeyboardMarkup(
-    [["phone", "earphone", "accessory"]], one_time_keyboard=True, resize_keyboard=True
+    [["phone", "laptop"], ["earphone", "accessory"]], one_time_keyboard=True, resize_keyboard=True
 )
+EARPHONE_TYPE_KEYBOARD = ReplyKeyboardMarkup([["Wireless", "Wired"]], one_time_keyboard=True, resize_keyboard=True)
+
+SPEC_CATEGORIES = {"phone", "laptop"}
 
 
 @owner_only
@@ -31,7 +48,13 @@ async def add_product_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def add_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     context.user_data["new_product"]["category"] = update.message.text.strip().lower()
-    await update.message.reply_text("Price (numbers only, e.g. 15000)?", reply_markup=ReplyKeyboardRemove())
+    await update.message.reply_text("Brand? (e.g. Samsung, Apple, JBL)", reply_markup=ReplyKeyboardRemove())
+    return BRAND
+
+
+async def add_product_brand(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["brand"] = update.message.text.strip()
+    await update.message.reply_text("Price (numbers only, e.g. 15000)?")
     return PRICE
 
 
@@ -63,8 +86,59 @@ async def add_product_stock(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return STOCK
 
     context.user_data["new_product"]["stock_qty"] = stock_qty
+    context.user_data["new_product"]["specs"] = {}
+
+    category = context.user_data["new_product"]["category"]
+    if category in SPEC_CATEGORIES:
+        await update.message.reply_text("RAM? (e.g. 8GB)")
+        return SPEC_RAM
+    elif category == "earphone":
+        await update.message.reply_text("Battery life? (e.g. 20 hours)")
+        return SPEC_EARPHONE_BATTERY
+    else:
+        await update.message.reply_text(
+            "Send a photo of the product now, or type 'skip' to add it later with /addphoto."
+        )
+        return PHOTO
+
+
+async def add_product_spec_ram(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["specs"]["ram"] = update.message.text.strip()
+    await update.message.reply_text("Storage? (e.g. 128GB)")
+    return SPEC_STORAGE
+
+
+async def add_product_spec_storage(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["specs"]["storage"] = update.message.text.strip()
+    await update.message.reply_text("Processor? (e.g. Snapdragon 8 Gen 3)")
+    return SPEC_PROCESSOR
+
+
+async def add_product_spec_processor(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["specs"]["processor"] = update.message.text.strip()
+    await update.message.reply_text("Battery? (e.g. 5000mAh)")
+    return SPEC_BATTERY
+
+
+async def add_product_spec_battery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["specs"]["battery"] = update.message.text.strip()
     await update.message.reply_text(
         "Send a photo of the product now, or type 'skip' to add it later with /addphoto."
+    )
+    return PHOTO
+
+
+async def add_product_spec_earphone_battery(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["specs"]["battery_life"] = update.message.text.strip()
+    await update.message.reply_text("Wireless or Wired?", reply_markup=EARPHONE_TYPE_KEYBOARD)
+    return SPEC_EARPHONE_TYPE
+
+
+async def add_product_spec_earphone_type(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    context.user_data["new_product"]["specs"]["type"] = update.message.text.strip()
+    await update.message.reply_text(
+        "Send a photo of the product now, or type 'skip' to add it later with /addphoto.",
+        reply_markup=ReplyKeyboardRemove(),
     )
     return PHOTO
 
@@ -93,7 +167,8 @@ async def add_product_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
     photo_note = " with photo" if photo_url else " (no photo — use /addphoto to add one later)"
     await update.message.reply_text(
-        f"✅ Added *{product.name}* — {product.price} ETB, {data['stock_qty']} in stock{photo_note}.",
+        f"✅ Added *{product.name}* ({product.brand}) — {product.price} ETB, "
+        f"{data['stock_qty']} in stock{photo_note}.",
         parse_mode="Markdown",
     )
     return ConversationHandler.END
