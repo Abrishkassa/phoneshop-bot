@@ -6,7 +6,9 @@ if (tg) {
 
 const state = {
   category: "phone",
-  priceRange: "",
+  priceRange: "all",
+  brand: "",
+  search: "",
   compareIds: [],
 };
 
@@ -17,6 +19,8 @@ const sheetOverlay = document.getElementById("sheetOverlay");
 const sheetContent = document.getElementById("sheetContent");
 const compareBar = document.getElementById("compareBar");
 const compareText = document.getElementById("compareText");
+const brandFilters = document.getElementById("brandFilters");
+const searchInput = document.getElementById("searchInput");
 
 function tgUser() {
   return tg?.initDataUnsafe?.user || null;
@@ -26,13 +30,27 @@ function money(n) {
   return Number(n).toLocaleString();
 }
 
+async function fetchBrands() {
+  const res = await fetch(`/api/brands?category=${state.category}`);
+  const brands = await res.json();
+
+  if (!brands.length) {
+    brandFilters.innerHTML = "";
+    return;
+  }
+  brandFilters.innerHTML =
+    `<button class="chip active" data-brand="">All brands</button>` +
+    brands.map((b) => `<button class="chip" data-brand="${b}">${b}</button>`).join("");
+}
+
 async function fetchProducts() {
   loadingState.classList.remove("hidden");
   emptyState.classList.add("hidden");
   grid.innerHTML = "";
 
-  const params = new URLSearchParams({ category: state.category });
-  if (state.priceRange) params.set("price_range", state.priceRange);
+  const params = new URLSearchParams({ category: state.category, price_range: state.priceRange });
+  if (state.brand) params.set("brand", state.brand);
+  if (state.search) params.set("search", state.search);
 
   const res = await fetch(`/api/products?${params}`);
   const products = await res.json();
@@ -220,16 +238,37 @@ document.getElementById("categoryTabs").addEventListener("click", (e) => {
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
   btn.classList.add("active");
   state.category = btn.dataset.category;
+  state.brand = "";
+  fetchBrands();
   fetchProducts();
 });
 
 document.getElementById("priceFilters").addEventListener("click", (e) => {
   const btn = e.target.closest(".chip");
   if (!btn) return;
-  document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+  document.querySelectorAll("#priceFilters .chip").forEach((c) => c.classList.remove("active"));
   btn.classList.add("active");
   state.priceRange = btn.dataset.range;
   fetchProducts();
 });
 
+brandFilters.addEventListener("click", (e) => {
+  const btn = e.target.closest(".chip");
+  if (!btn) return;
+  document.querySelectorAll("#brandFilters .chip").forEach((c) => c.classList.remove("active"));
+  btn.classList.add("active");
+  state.brand = btn.dataset.brand;
+  fetchProducts();
+});
+
+let searchDebounce;
+searchInput.addEventListener("input", (e) => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    state.search = e.target.value.trim();
+    fetchProducts();
+  }, 350);
+});
+
+fetchBrands();
 fetchProducts();
