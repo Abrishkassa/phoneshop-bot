@@ -55,6 +55,21 @@ body {
   color: var(--accent-btn-text);
 }
 
+.search-bar {
+  padding: 10px 16px 0;
+}
+.search-bar input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.search-bar input::placeholder { color: var(--hint); }
+.search-bar input:focus { outline: none; border-color: var(--accent-btn); }
+
 .filters {
   display: flex;
   gap: 8px;
