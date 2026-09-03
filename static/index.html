@@ -15,16 +15,23 @@
 
     <nav class="tabs" id="categoryTabs">
       <button class="tab active" data-category="phone">📱 Phones</button>
+      <button class="tab" data-category="laptop">💻 Laptops</button>
       <button class="tab" data-category="earphone">🎧 Earphones</button>
       <button class="tab" data-category="accessory">🔌 Accessories</button>
     </nav>
 
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by name or brand..." />
+    </div>
+
     <div class="filters" id="priceFilters">
-      <button class="chip active" data-range="">All</button>
+      <button class="chip active" data-range="all">All prices</button>
       <button class="chip" data-range="under10k">Under 10k</button>
       <button class="chip" data-range="10to20k">10k–20k</button>
       <button class="chip" data-range="over20k">20k+</button>
     </div>
+
+    <div class="filters" id="brandFilters"></div>
 
     <main id="grid" class="grid"></main>
     <p id="emptyState" class="empty-state hidden">No products in this range yet.</p>
