@@ -1,4 +1,12 @@
-from telegram.ext import Application, CommandHandler, ConversationHandler, MessageHandler, filters
+from telegram import BotCommand
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ConversationHandler,
+    MessageHandler,
+    filters,
+)
 
 from app.bot.handlers_customer import start
 from app.bot.handlers_owner import (
@@ -8,6 +16,7 @@ from app.bot.handlers_owner import (
     NAME,
     PHOTO,
     PRICE,
+    REVIEW,
     SPEC_BATTERY,
     SPEC_EARPHONE_BATTERY,
     SPEC_EARPHONE_TYPE,
@@ -30,6 +39,9 @@ from app.bot.handlers_owner import (
     add_product_spec_storage,
     add_product_start,
     add_product_stock,
+    review_back,
+    review_cancel,
+    review_confirm,
 )
 from app.bot.handlers_owner_manage import (
     AWAITING_PHOTO_FOR_PRODUCT,
@@ -46,6 +58,22 @@ from app.bot.handlers_owner_manage import (
 )
 from app.core.config import settings
 
+BOT_COMMANDS = [
+    BotCommand("start", "Open the shop (customers)"),
+    BotCommand("addproduct", "Add a new product (owner)"),
+    BotCommand("myproducts", "List all your products (owner)"),
+    BotCommand("setstock", "Update stock: /setstock <id> <qty>"),
+    BotCommand("setprice", "Update price: /setprice <id> <price>"),
+    BotCommand("addphoto", "Add a photo: /addphoto <id>"),
+    BotCommand("editspecs", "Edit brand/specs: /editspecs <id>"),
+    BotCommand("cancel", "Cancel whatever you're doing"),
+]
+
+
+async def _post_init(application: Application) -> None:
+    """Sets the persistent "/" command menu shown in Telegram's UI."""
+    await application.bot.set_my_commands(BOT_COMMANDS)
+
 
 def build_application() -> Application:
     """Builds the bot's command set.
@@ -55,7 +83,9 @@ def build_application() -> Application:
     app/bot/handlers_customer.py and app/routers/miniapp.py. Only owner
     management stays as bot commands.
     """
-    application = Application.builder().token(settings.telegram_bot_token).build()
+    application = (
+        Application.builder().token(settings.telegram_bot_token).post_init(_post_init).build()
+    )
 
     application.add_handler(CommandHandler("start", start))
 
@@ -83,6 +113,11 @@ def build_application() -> Application:
                 MessageHandler(filters.TEXT & ~filters.COMMAND, add_product_spec_earphone_type)
             ],
             PHOTO: [MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), add_product_photo)],
+            REVIEW: [
+                CallbackQueryHandler(review_confirm, pattern="^review_confirm$"),
+                CallbackQueryHandler(review_back, pattern="^review_back$"),
+                CallbackQueryHandler(review_cancel, pattern="^review_cancel$"),
+            ],
         },
         fallbacks=[CommandHandler("cancel", add_product_cancel)],
     )
