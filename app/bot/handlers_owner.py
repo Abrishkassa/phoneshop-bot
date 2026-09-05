@@ -30,6 +30,7 @@ EARPHONE_TYPE_KEYBOARD = ReplyKeyboardMarkup(
     [["Wireless", "Wired"], ["⬅️ back"]], one_time_keyboard=True, resize_keyboard=True
 )
 BACK_HINT = "\n\n(type 'back' to go to the previous step, or /cancel to stop)"
+MAX_PHOTOS = 5
 
 SPEC_CATEGORIES = {"phone", "laptop"}
 
@@ -88,7 +89,8 @@ async def _prompt_for_state(update: Update, state: int, context: ContextTypes.DE
         await update.message.reply_text("Wireless or Wired?", reply_markup=EARPHONE_TYPE_KEYBOARD)
     elif state == PHOTO:
         await update.message.reply_text(
-            "Send a photo of the product now, or type 'skip' to add it later with /addphoto."
+            f"Send up to {MAX_PHOTOS} photos of the product, one at a time. "
+            "Type 'done' when finished, or 'skip' to add photos later with /addphoto."
             + BACK_HINT
         )
 
@@ -253,6 +255,7 @@ async def add_product_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         return await _go_back(update, context, PHOTO)
 
     data = context.user_data["new_product"]
+    data.setdefault("photo_urls", [])
 
     if update.message.photo:
         largest = update.message.photo[-1]
@@ -260,11 +263,18 @@ async def add_product_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         file_bytes = bytes(await file.download_as_bytearray())
         try:
             photo_url = await upload_product_photo(file_bytes)
-            data["photo_urls"] = [photo_url]
+            data["photo_urls"].append(photo_url)
         except Exception:
+            await update.message.reply_text("⚠️ That photo failed to upload — try sending it again, or type 'done'.")
+            return PHOTO
+
+        if len(data["photo_urls"]) >= MAX_PHOTOS:
+            await update.message.reply_text(f"That's {MAX_PHOTOS} photos — moving on.")
+        else:
             await update.message.reply_text(
-                "⚠️ Photo upload failed — you can add one later with /addphoto. Continuing..."
+                f"Got it ({len(data['photo_urls'])}/{MAX_PHOTOS}). Send another photo, or type 'done' to continue."
             )
+            return PHOTO
 
     keyboard = InlineKeyboardMarkup(
         [
@@ -299,7 +309,10 @@ async def review_back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     await query.edit_message_text("Okay, let's redo the photo step.")
     await context.bot.send_message(
         chat_id=query.message.chat_id,
-        text="Send a photo of the product now, or type 'skip' to add it later with /addphoto." + BACK_HINT,
+        text=(
+            f"Send up to {MAX_PHOTOS} photos of the product, one at a time. "
+            "Type 'done' when finished, or 'skip' to add photos later with /addphoto." + BACK_HINT
+        ),
     )
     return PHOTO
 
