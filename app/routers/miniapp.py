@@ -54,12 +54,18 @@ async def submit_inquiry(payload: InquiryCreate, db: AsyncSession = Depends(get_
     )
 
     username_note = f"@{payload.telegram_username}" if payload.telegram_username else f"id {payload.telegram_id}"
+    keyboard = {
+        "inline_keyboard": [
+            [{"text": "✅ Mark as Sold (-1 stock)", "callback_data": f"marksold:{inquiry.id}"}]
+        ]
+    }
     await notify_owner(
-        f" New delivery request (Mini App)\n"
+        f"🔔 New delivery request (Mini App)\n"
         f"Product: {product.name}\n"
         f"Customer: {username_note}\n"
         f"Color: {payload.preferred_color or 'any'}\n"
-        f"Reference: #{inquiry.reference_code}"
+        f"Reference: #{inquiry.reference_code}",
+        reply_markup=keyboard,
     )
 
     return inquiry
