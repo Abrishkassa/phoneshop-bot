@@ -104,14 +104,25 @@ async def add_photo_start(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return ConversationHandler.END
 
     context.user_data["photo_target_product_id"] = product_id
-    await update.message.reply_text(f"Send a photo for *{product.name}*.", parse_mode="Markdown")
+    await update.message.reply_text(
+        f"Send a photo for *{product.name}*. You can send several — type 'done' when finished.",
+        parse_mode="Markdown",
+    )
     return AWAITING_PHOTO_FOR_PRODUCT
 
 
 async def add_photo_receive(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    product_id = context.user_data.pop("photo_target_product_id", None)
-    if not product_id or not update.message.photo:
-        await update.message.reply_text("Please send a photo, or /cancel to stop.")
+    product_id = context.user_data.get("photo_target_product_id")
+    if not product_id:
+        return ConversationHandler.END
+
+    if update.message.text and update.message.text.strip().lower() == "done":
+        context.user_data.pop("photo_target_product_id", None)
+        await update.message.reply_text("✅ Done adding photos.")
+        return ConversationHandler.END
+
+    if not update.message.photo:
+        await update.message.reply_text("Please send a photo, type 'done' to finish, or /cancel to stop.")
         return AWAITING_PHOTO_FOR_PRODUCT
 
     largest = update.message.photo[-1]
@@ -121,14 +132,17 @@ async def add_photo_receive(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     try:
         photo_url = await upload_product_photo(file_bytes)
     except Exception:
-        await update.message.reply_text("⚠️ Upload failed. Please try again with /addphoto.")
-        return ConversationHandler.END
+        await update.message.reply_text("⚠️ Upload failed. Try sending it again, or /cancel to stop.")
+        return AWAITING_PHOTO_FOR_PRODUCT
 
     async with AsyncSessionLocal() as db:
         product = await add_photo_url(db, product_id, photo_url)
 
-    await update.message.reply_text(f"✅ Photo added to {product.name if product else 'product'}.")
-    return ConversationHandler.END
+    photo_count = len(product.photo_urls) if product else "?"
+    await update.message.reply_text(
+        f"✅ Photo added ({photo_count} total). Send another, or type 'done' to finish."
+    )
+    return AWAITING_PHOTO_FOR_PRODUCT
 
 
 async def add_photo_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
