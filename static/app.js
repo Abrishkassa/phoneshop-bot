@@ -14,7 +14,6 @@ const state = {
 
 const grid = document.getElementById("grid");
 const emptyState = document.getElementById("emptyState");
-const loadingState = document.getElementById("loadingState");
 const sheetOverlay = document.getElementById("sheetOverlay");
 const sheetContent = document.getElementById("sheetContent");
 const compareBar = document.getElementById("compareBar");
@@ -28,6 +27,20 @@ function tgUser() {
 
 function money(n) {
   return Number(n).toLocaleString();
+}
+
+function renderSkeleton() {
+  grid.innerHTML = Array(6)
+    .fill(0)
+    .map(
+      () => `
+      <div class="skeleton-card">
+        <div class="skeleton-img"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line short"></div>
+      </div>`
+    )
+    .join("");
 }
 
 async function fetchBrands() {
@@ -44,9 +57,8 @@ async function fetchBrands() {
 }
 
 async function fetchProducts() {
-  loadingState.classList.remove("hidden");
+  renderSkeleton();
   emptyState.classList.add("hidden");
-  grid.innerHTML = "";
 
   const params = new URLSearchParams({ category: state.category, price_range: state.priceRange });
   if (state.brand) params.set("brand", state.brand);
@@ -55,8 +67,8 @@ async function fetchProducts() {
   const res = await fetch(`/api/products?${params}`);
   const products = await res.json();
 
-  loadingState.classList.add("hidden");
   if (!products.length) {
+    grid.innerHTML = "";
     emptyState.classList.remove("hidden");
     return;
   }
@@ -112,10 +124,20 @@ async function openDetail(productId) {
     .map((c) => `<button class="color-chip" data-color="${c}">${c}</button>`)
     .join("");
 
+  const photos = p.photo_urls?.length ? p.photo_urls : [null];
+  const carouselSlides = photos
+    .map((url) => `<div class="carousel-slide">${url ? `<img src="${url}" alt="${p.name}" />` : "📱"}</div>`)
+    .join("");
+  const carouselDots =
+    photos.length > 1
+      ? `<div class="carousel-dots">${photos.map((_, i) => `<span class="dot${i === 0 ? " active" : ""}" data-index="${i}"></span>`).join("")}</div>`
+      : "";
+
   sheetContent.innerHTML = `
-    <div class="sheet-img">${
-      p.photo_urls?.[0] ? `<img src="${p.photo_urls[0]}" alt="${p.name}" />` : "📱"
-    }</div>
+    <div class="carousel" id="photoCarousel">
+      <div class="carousel-track">${carouselSlides}</div>
+      ${carouselDots}
+    </div>
     <div class="sheet-name">${p.name}</div>
     <div class="sheet-price">
       ${hasDiscount ? `<span class="was">${money(p.price)} ETB</span>` : ""}
@@ -130,6 +152,10 @@ async function openDetail(productId) {
     </button>
     <button class="btn btn-outline" id="compareBtn">🔍 Add to Compare</button>
   `;
+
+  if (photos.length > 1) {
+    setupCarousel(document.getElementById("photoCarousel"));
+  }
 
   let selectedColor = null;
   sheetContent.querySelectorAll(".color-chip").forEach((chip) => {
@@ -146,6 +172,32 @@ async function openDetail(productId) {
   document.getElementById("compareBtn").addEventListener("click", () => addToCompare(p.id, p.name));
 
   sheetOverlay.classList.remove("hidden");
+}
+
+function setupCarousel(carouselEl) {
+  const track = carouselEl.querySelector(".carousel-track");
+  const dots = carouselEl.querySelectorAll(".dot");
+  let current = 0;
+  let startX = 0;
+
+  function goTo(index) {
+    current = Math.max(0, Math.min(index, dots.length - 1));
+    track.style.transform = `translateX(-${current * 100}%)`;
+    dots.forEach((d, i) => d.classList.toggle("active", i === current));
+  }
+
+  track.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+  });
+  track.addEventListener("touchend", (e) => {
+    const diff = e.changedTouches[0].clientX - startX;
+    if (diff > 40) goTo(current - 1);
+    else if (diff < -40) goTo(current + 1);
+  });
+
+  dots.forEach((dot) => {
+    dot.addEventListener("click", () => goTo(Number(dot.dataset.index)));
+  });
 }
 
 sheetOverlay.addEventListener("click", (e) => {

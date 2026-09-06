@@ -9,6 +9,7 @@ from telegram.ext import (
 )
 
 from app.bot.handlers_customer import start
+from app.bot.handlers_inquiry import mark_sold_callback
 from app.bot.handlers_owner import (
     BRAND,
     CATEGORY,
@@ -88,6 +89,7 @@ def build_application() -> Application:
     )
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(mark_sold_callback, pattern="^marksold:"))
 
     application.add_handler(CommandHandler("myproducts", my_products))
     application.add_handler(CommandHandler("setstock", update_stock))
@@ -126,7 +128,9 @@ def build_application() -> Application:
     add_photo_conv = ConversationHandler(
         entry_points=[CommandHandler("addphoto", add_photo_start)],
         states={
-            AWAITING_PHOTO_FOR_PRODUCT: [MessageHandler(filters.PHOTO, add_photo_receive)],
+            AWAITING_PHOTO_FOR_PRODUCT: [
+                MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), add_photo_receive)
+            ],
         },
         fallbacks=[CommandHandler("cancel", add_photo_cancel)],
     )
