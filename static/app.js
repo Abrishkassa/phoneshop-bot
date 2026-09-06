@@ -44,7 +44,7 @@ function renderSkeleton() {
 }
 
 async function fetchBrands() {
-  const res = await fetch(`/api/brands?category=${state.category}`);
+  const res = await fetch(`/api/brands?category=${state.category}`, { cache: "no-store" });
   const brands = await res.json();
 
   if (!brands.length) {
@@ -64,7 +64,7 @@ async function fetchProducts() {
   if (state.brand) params.set("brand", state.brand);
   if (state.search) params.set("search", state.search);
 
-  const res = await fetch(`/api/products?${params}`);
+  const res = await fetch(`/api/products?${params}`, { cache: "no-store" });
   const products = await res.json();
 
   if (!products.length) {
@@ -111,7 +111,7 @@ function renderGrid(products) {
 }
 
 async function openDetail(productId) {
-  const res = await fetch(`/api/products/${productId}`);
+  const res = await fetch(`/api/products/${productId}`, { cache: "no-store" });
   if (!res.ok) return;
   const p = await res.json();
 
@@ -258,7 +258,7 @@ document.getElementById("compareClear").addEventListener("click", () => {
 
 async function showCompare() {
   const [a, b] = await Promise.all(
-    state.compareIds.map((c) => fetch(`/api/products/${c.id}`).then((r) => r.json()))
+    state.compareIds.map((c) => fetch(`/api/products/${c.id}`, { cache: "no-store" }).then((r) => r.json()))
   );
 
   const rows = [

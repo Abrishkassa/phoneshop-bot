@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -14,24 +14,32 @@ from app.services.product_service import (
 router = APIRouter(prefix="/api", tags=["miniapp"])
 
 
+def _no_cache(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+
+
 @router.get("/products", response_model=list[ProductOut])
 async def get_products(
+    response: Response,
     category: str,
     price_range: str = "all",
     brand: str | None = None,
     search: str | None = None,
     db: AsyncSession = Depends(get_db),
 ):
+    _no_cache(response)
     return await list_products_by_category_and_price(db, category, price_range, brand=brand, search=search)
 
 
 @router.get("/brands", response_model=list[str])
-async def get_brands(category: str, db: AsyncSession = Depends(get_db)):
+async def get_brands(response: Response, category: str, db: AsyncSession = Depends(get_db)):
+    _no_cache(response)
     return await list_distinct_brands(db, category)
 
 
 @router.get("/products/{product_id}", response_model=ProductOut)
-async def get_product_detail(product_id: int, db: AsyncSession = Depends(get_db)):
+async def get_product_detail(response: Response, product_id: int, db: AsyncSession = Depends(get_db)):
+    _no_cache(response)
     product = await get_product(db, product_id)
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
