@@ -184,6 +184,7 @@ function setupCarousel(carouselEl) {
     current = Math.max(0, Math.min(index, dots.length - 1));
     track.style.transform = `translateX(-${current * 100}%)`;
     dots.forEach((d, i) => d.classList.toggle("active", i === current));
+
   }
 
   track.addEventListener("touchstart", (e) => {
