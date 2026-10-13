@@ -6,40 +6,58 @@
   <title>Phone Shop</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
   <div id="app">
     <header class="topbar">
-      <h1 id="shopName">Phone Shop</h1>
+      <div class="brand">
+        <div class="brand-logo"><i data-lucide="store"></i></div>
+        <div class="brand-text">
+          <h1 id="shopName">Phone Shop</h1>
+          <p class="brand-sub">Browse, compare &amp; order delivery</p>
+        </div>
+      </div>
+
+      <div class="search-bar">
+        <i class="search-icon" data-lucide="search"></i>
+        <input type="text" id="searchInput" placeholder="Search by name or brand..." autocomplete="off" />
+        <button id="searchClear" class="search-clear hidden" aria-label="Clear search">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <nav class="tabs" id="categoryTabs">
+        <button class="tab active" data-category="phone"><i data-lucide="smartphone"></i>Phones</button>
+        <button class="tab" data-category="laptop"><i data-lucide="laptop"></i>Laptops</button>
+        <button class="tab" data-category="earphone"><i data-lucide="headphones"></i>Earphones</button>
+        <button class="tab" data-category="accessory"><i data-lucide="plug-zap"></i>Accessories</button>
+      </nav>
     </header>
 
-    <nav class="tabs" id="categoryTabs">
-      <button class="tab active" data-category="phone">📱 Phones</button>
-      <button class="tab" data-category="laptop">💻 Laptops</button>
-      <button class="tab" data-category="earphone">🎧 Earphones</button>
-      <button class="tab" data-category="accessory">🔌 Accessories</button>
-    </nav>
-
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search by name or brand..." />
-    </div>
-
-    <div class="filters" id="priceFilters">
-      <button class="chip active" data-range="all">All prices</button>
-      <button class="chip" data-range="under10k">Under 10k</button>
-      <button class="chip" data-range="10to20k">10k–20k</button>
-      <button class="chip" data-range="over20k">20k+</button>
-    </div>
-
-    <div class="filters" id="brandFilters"></div>
+    <section class="filter-section">
+      <div class="filters" id="priceFilters">
+        <button class="chip active" data-range="all"><i data-lucide="layers"></i>All prices</button>
+        <button class="chip" data-range="under10k"><i data-lucide="arrow-down"></i>Under 10k</button>
+        <button class="chip" data-range="10to20k"><i data-lucide="minus"></i>10k–20k</button>
+        <button class="chip" data-range="over20k"><i data-lucide="arrow-up"></i>20k+</button>
+      </div>
+      <div class="filters" id="brandFilters"></div>
+    </section>
 
     <main id="grid" class="grid"></main>
-    <p id="emptyState" class="empty-state hidden">No products in this range yet.</p>
+
+    <div id="emptyState" class="empty-state hidden">
+      <div class="empty-icon"><i data-lucide="search-x"></i></div>
+      <p class="empty-title">Nothing found</p>
+      <p class="empty-sub">Try another category, brand or price filter.</p>
+    </div>
   </div>
 
   <!-- Product detail bottom sheet -->
   <div id="sheetOverlay" class="sheet-overlay hidden">
     <div id="sheet" class="sheet">
+      <button class="sheet-close" id="sheetClose" aria-label="Close"><i data-lucide="x"></i></button>
       <div class="sheet-handle"></div>
       <div id="sheetContent"></div>
     </div>
@@ -47,9 +65,18 @@
 
   <!-- Compare bar -->
   <div id="compareBar" class="compare-bar hidden">
-    <span id="compareText"></span>
-    <button id="compareClear">Clear</button>
+    <div class="compare-info">
+      <div class="compare-avatars" id="compareAvatars"></div>
+      <span id="compareText"></span>
+    </div>
+    <div class="compare-actions">
+      <button id="compareGo" class="compare-go hidden"><i data-lucide="columns-2"></i>Compare</button>
+      <button id="compareClear" class="compare-clear" aria-label="Clear comparison"><i data-lucide="trash-2"></i></button>
+    </div>
   </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
 
   <script src="app.js"></script>
 </body>
