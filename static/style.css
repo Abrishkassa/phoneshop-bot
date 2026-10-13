@@ -50,9 +50,9 @@ svg { width: 1em; height: 1em; }
   top: 0;
   z-index: 20;
   padding: 16px 16px 12px;
-  background: color-mix(in srgb, var(--bg) 82%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  /* Solid theme color — color-mix() breaks older mobile WebViews */
+  background: var(--bg);
+  box-shadow: 0 1px 0 var(--border-subtle);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -123,7 +123,7 @@ svg { width: 1em; height: 1em; }
 .search-bar input:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: 0 0 0 3px rgba(128, 145, 178, 0.28);
 }
 
 .search-clear {
@@ -212,7 +212,7 @@ svg { width: 1em; height: 1em; }
 .chip.active {
   border-color: var(--tag);
   color: var(--tag);
-  background: color-mix(in srgb, var(--tag) 12%, transparent);
+  background: rgba(245, 165, 36, 0.12);
 }
 
 .chip:active { transform: scale(0.95); }
@@ -251,6 +251,7 @@ svg { width: 1em; height: 1em; }
 .card-img {
   width: 100%;
   aspect-ratio: 1;
+  min-height: 140px; /* fallback for WebViews without aspect-ratio */
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
   display: flex;
   align-items: center;
@@ -373,6 +374,7 @@ svg { width: 1em; height: 1em; }
 .skeleton-img {
   width: 100%;
   aspect-ratio: 1;
+  min-height: 140px;
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -387,7 +389,10 @@ svg { width: 1em; height: 1em; }
 .skeleton-card::after {
   content: "";
   position: absolute;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.07) 50%, transparent 70%);
   animation: shimmer 1.4s infinite;
 }
@@ -426,9 +431,13 @@ svg { width: 1em; height: 1em; }
 
 .sheet-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: flex-end;
   z-index: 50;
@@ -490,6 +499,7 @@ svg { width: 1em; height: 1em; }
   position: relative;
   width: 100%;
   aspect-ratio: 4/3;
+  min-height: 220px; /* fallback for WebViews without aspect-ratio */
   border-radius: var(--radius);
   overflow: hidden;
   margin-bottom: 16px;
@@ -626,7 +636,7 @@ svg { width: 1em; height: 1em; }
 
 .color-chip.selected {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 18%, var(--card-bg));
+  background: var(--card-bg);
   color: var(--text);
 }
 
@@ -668,7 +678,8 @@ svg { width: 1em; height: 1em; }
   bottom: 0;
   display: flex;
   gap: 10px;
-  padding: 14px 0 max(16px, env(safe-area-inset-bottom));
+  padding: 14px 0 16px;
+  padding: 14px 0 max(16px, env(safe-area-inset-bottom)); /* iOS safe area */
   margin-top: 18px;
   background: linear-gradient(180deg, transparent, var(--bg) 30%);
 }
@@ -721,11 +732,12 @@ svg { width: 1em; height: 1em; }
 
 .compare-bar {
   position: fixed;
-  bottom: max(14px, env(safe-area-inset-bottom));
+  bottom: 14px;
+  bottom: max(14px, env(safe-area-inset-bottom)); /* iOS safe area */
   left: 14px;
   right: 14px;
   z-index: 40;
-  background: color-mix(in srgb, var(--card-bg) 92%, transparent);
+  background: var(--card-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   padding: 10px 12px;
@@ -896,7 +908,7 @@ svg { width: 1em; height: 1em; }
   max-width: calc(100% - 32px);
   padding: 12px 16px;
   border-radius: 14px;
-  background: color-mix(in srgb, var(--card-bg) 94%, transparent);
+  background: var(--card-bg);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   font-size: 13.5px;

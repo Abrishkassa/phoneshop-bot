@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -18,6 +18,25 @@ app.add_middleware(
 )
 
 app.include_router(miniapp.router)
+
+
+@app.middleware("http")
+async def miniapp_cache_headers(request: Request, call_next):
+    """Keep the Mini App from going stale in Telegram's in-app browser.
+
+    - /app/vendor/* files are versioned by filename (lucide-<ver>.min.js),
+      so they can be cached forever.
+    - Every other /app asset is served no-store: Telegram caches aggressively,
+      and a stale index.html paired with a fresh app.js (or vice versa) can
+      break the page on mobile devices.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/app/vendor/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path.startswith("/app"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.get("/health")

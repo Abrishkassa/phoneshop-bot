@@ -12,6 +12,9 @@ const state = {
   compareIds: [],
 };
 
+// Every DOM lookup below is guarded: Telegram's in-app browser can pair a
+// stale cached index.html with a fresh app.js (or vice versa), and one
+// missing element must never take down the whole app.
 const grid = document.getElementById("grid");
 const emptyState = document.getElementById("emptyState");
 const sheetOverlay = document.getElementById("sheetOverlay");
@@ -66,6 +69,9 @@ function refreshIcons() {
   window.lucide?.createIcons();
 }
 
+// Safety net: re-render icons on full load in case lucide arrives late.
+window.addEventListener("load", refreshIcons);
+
 function haptic(kind = "light") {
   tg?.HapticFeedback?.impactOccurred?.(kind);
 }
@@ -93,6 +99,7 @@ function stockPill(qty) {
 let toastTimer;
 function toast(message, kind = "success") {
   const el = document.getElementById("toast");
+  if (!el) return;
   const icon = kind === "success" ? "check-circle-2" : "circle-alert";
   el.className = `toast ${kind}`;
   el.innerHTML = `<i data-lucide="${icon}"></i><span>${esc(message)}</span>`;
@@ -105,6 +112,7 @@ function toast(message, kind = "success") {
 /* ---------- data ---------- */
 
 function renderSkeleton() {
+  if (!grid) return;
   grid.innerHTML = Array(6)
     .fill(0)
     .map(
@@ -119,6 +127,7 @@ function renderSkeleton() {
 }
 
 async function fetchBrands() {
+  if (!brandFilters) return;
   const res = await fetch(`/api/brands?category=${state.category}`, { cache: "no-store" });
   const brands = await res.json();
 
@@ -134,7 +143,7 @@ async function fetchBrands() {
 
 async function fetchProducts() {
   renderSkeleton();
-  emptyState.classList.add("hidden");
+  emptyState?.classList.add("hidden");
 
   const params = new URLSearchParams({ category: state.category, price_range: state.priceRange });
   if (state.brand) params.set("brand", state.brand);
@@ -144,8 +153,8 @@ async function fetchProducts() {
   const products = await res.json();
 
   if (!products.length) {
-    grid.innerHTML = "";
-    emptyState.classList.remove("hidden");
+    if (grid) grid.innerHTML = "";
+    emptyState?.classList.remove("hidden");
     refreshIcons();
     return;
   }
@@ -155,6 +164,7 @@ async function fetchProducts() {
 /* ---------- grid ---------- */
 
 function renderGrid(products) {
+  if (!grid) return;
   grid.innerHTML = products
     .map((p, i) => {
       const hasDiscount = p.discount_price != null;
@@ -194,7 +204,20 @@ function renderGrid(products) {
 
 /* ---------- detail sheet ---------- */
 
+function openSheet() {
+  if (!sheetOverlay) return;
+  sheetOverlay.classList.remove("hidden");
+  const sheet = sheetOverlay.querySelector(".sheet");
+  if (sheet) sheet.scrollTop = 0;
+  refreshIcons();
+}
+
+function closeSheet() {
+  sheetOverlay?.classList.add("hidden");
+}
+
 async function openDetail(productId) {
+  if (!sheetOverlay || !sheetContent) return;
   const res = await fetch(`/api/products/${productId}`, { cache: "no-store" });
   if (!res.ok) return;
   const p = await res.json();
@@ -284,19 +307,18 @@ async function openDetail(productId) {
     });
   });
 
-  document.getElementById("requestDeliveryBtn").addEventListener("click", () =>
+  document.getElementById("requestDeliveryBtn")?.addEventListener("click", () =>
     submitDelivery(p.id, selectedColor)
   );
-  document.getElementById("compareBtn").addEventListener("click", () =>
+  document.getElementById("compareBtn")?.addEventListener("click", () =>
     addToCompare(p.id, p.name, p.photo_urls?.[0] || null)
   );
 
-  sheetOverlay.classList.remove("hidden");
-  sheetOverlay.querySelector(".sheet").scrollTop = 0;
-  refreshIcons();
+  openSheet();
 }
 
 function setupCarousel(carouselEl) {
+  if (!carouselEl) return;
   const track = carouselEl.querySelector(".carousel-track");
   const dots = carouselEl.querySelectorAll(".dot");
   let current = 0;
@@ -323,14 +345,10 @@ function setupCarousel(carouselEl) {
   });
 }
 
-function closeSheet() {
-  sheetOverlay.classList.add("hidden");
-}
-
-sheetOverlay.addEventListener("click", (e) => {
+sheetOverlay?.addEventListener("click", (e) => {
   if (e.target === sheetOverlay) closeSheet();
 });
-document.getElementById("sheetClose").addEventListener("click", closeSheet);
+document.getElementById("sheetClose")?.addEventListener("click", closeSheet);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeSheet();
 });
@@ -377,34 +395,40 @@ function addToCompare(id, name, photo) {
 }
 
 function updateCompareBar() {
+  if (!compareBar) return;
   if (!state.compareIds.length) {
     compareBar.classList.add("hidden");
     return;
   }
   compareBar.classList.remove("hidden");
-  compareText.textContent =
-    state.compareIds.length === 1
-      ? `${state.compareIds[0].name} — pick one more`
-      : `${state.compareIds[0].name} vs ${state.compareIds[1].name}`;
+  if (compareText) {
+    compareText.textContent =
+      state.compareIds.length === 1
+        ? `${state.compareIds[0].name} — pick one more`
+        : `${state.compareIds[0].name} vs ${state.compareIds[1].name}`;
+  }
 
-  compareAvatars.innerHTML = state.compareIds
-    .map(
-      (c) =>
-        `<div class="avatar">${c.photo ? `<img src="${esc(c.photo)}" alt="" />` : `<i data-lucide="package"></i>`}</div>`
-    )
-    .join("");
+  if (compareAvatars) {
+    compareAvatars.innerHTML = state.compareIds
+      .map(
+        (c) =>
+          `<div class="avatar">${c.photo ? `<img src="${esc(c.photo)}" alt="" />` : `<i data-lucide="package"></i>`}</div>`
+      )
+      .join("");
+  }
 
-  compareGo.classList.toggle("hidden", state.compareIds.length < 2);
+  compareGo?.classList.toggle("hidden", state.compareIds.length < 2);
   refreshIcons();
 }
 
-document.getElementById("compareClear").addEventListener("click", () => {
+document.getElementById("compareClear")?.addEventListener("click", () => {
   state.compareIds = [];
   updateCompareBar();
 });
-compareGo.addEventListener("click", showCompare);
+compareGo?.addEventListener("click", showCompare);
 
 async function showCompare() {
+  if (!sheetOverlay || !sheetContent) return;
   const [a, b] = await Promise.all(
     state.compareIds.map((c) =>
       fetch(`/api/products/${c.id}`, { cache: "no-store" }).then((r) => r.json())
@@ -455,19 +479,17 @@ async function showCompare() {
       <button class="btn btn-secondary" id="closeCompareBtn"><i data-lucide="x"></i>Close</button>
     </div>
   `;
-  document.getElementById("closeCompareBtn").addEventListener("click", () => {
+  document.getElementById("closeCompareBtn")?.addEventListener("click", () => {
     closeSheet();
     state.compareIds = [];
     updateCompareBar();
   });
-  sheetOverlay.classList.remove("hidden");
-  sheetOverlay.querySelector(".sheet").scrollTop = 0;
-  refreshIcons();
+  openSheet();
 }
 
 /* ---------- filters & search ---------- */
 
-document.getElementById("categoryTabs").addEventListener("click", (e) => {
+document.getElementById("categoryTabs")?.addEventListener("click", (e) => {
   const btn = e.target.closest(".tab");
   if (!btn) return;
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
@@ -479,7 +501,7 @@ document.getElementById("categoryTabs").addEventListener("click", (e) => {
   fetchProducts();
 });
 
-document.getElementById("priceFilters").addEventListener("click", (e) => {
+document.getElementById("priceFilters")?.addEventListener("click", (e) => {
   const btn = e.target.closest(".chip");
   if (!btn) return;
   document.querySelectorAll("#priceFilters .chip").forEach((c) => c.classList.remove("active"));
@@ -489,7 +511,7 @@ document.getElementById("priceFilters").addEventListener("click", (e) => {
   fetchProducts();
 });
 
-brandFilters.addEventListener("click", (e) => {
+brandFilters?.addEventListener("click", (e) => {
   const btn = e.target.closest(".chip");
   if (!btn) return;
   document.querySelectorAll("#brandFilters .chip").forEach((c) => c.classList.remove("active"));
@@ -500,8 +522,8 @@ brandFilters.addEventListener("click", (e) => {
 });
 
 let searchDebounce;
-searchInput.addEventListener("input", (e) => {
-  searchClear.classList.toggle("hidden", !e.target.value);
+searchInput?.addEventListener("input", (e) => {
+  searchClear?.classList.toggle("hidden", !e.target.value);
   clearTimeout(searchDebounce);
   searchDebounce = setTimeout(() => {
     state.search = e.target.value.trim();
@@ -509,7 +531,8 @@ searchInput.addEventListener("input", (e) => {
   }, 350);
 });
 
-searchClear.addEventListener("click", () => {
+searchClear?.addEventListener("click", () => {
+  if (!searchInput) return;
   searchInput.value = "";
   searchClear.classList.add("hidden");
   state.search = "";

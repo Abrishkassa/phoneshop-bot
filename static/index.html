@@ -5,8 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Phone Shop</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://unpkg.com/lucide@0.454.0/dist/umd/lucide.min.js"></script>
+  <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Icons are self-hosted (versioned filename, cached forever) so the app
+       never depends on an external CDN being reachable from the user's network.
+       Both scripts are deferred: they run in order, after the DOM is parsed,
+       and never block first paint. -->
+  <script defer src="vendor/lucide-0.454.0.min.js"></script>
+  <script defer src="app.js"></script>
 </head>
 <body>
   <div id="app">
@@ -77,7 +82,5 @@
 
   <!-- Toast -->
   <div id="toast" class="toast"></div>
-
-  <script src="app.js"></script>
 </body>
 </html>
